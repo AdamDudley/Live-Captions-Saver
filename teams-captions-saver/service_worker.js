@@ -14,41 +14,59 @@ function jsonToYaml(json) {
 }
 
 function saveTranscripts(meetingTitle, transcriptArray, meetingDate) {
-    const yaml = `Meeting Date: ${meetingDate}\n\n` + jsonToYaml(transcriptArray); // Add meeting date to the top
-    console.log(yaml);
+    // Sanitize the filename by removing invalid characters
+    const sanitizedTitle = (meetingTitle || 'Meeting').replace(/[^a-z0-9]/gi, '_');
+    const sanitizedDate = (meetingDate || new Date().toLocaleDateString()).replace(/\//g, '-');
+    const fileName = `${sanitizedTitle}_${sanitizedDate}.txt`;
+
+    const yaml = `Meeting Date: ${meetingDate}\n\n` + jsonToYaml(transcriptArray);
+    
+    // Convert the content to a base64 string
+    const bytes = new TextEncoder().encode(yaml);
+    const base64 = btoa(String.fromCharCode(...bytes));
+    const dataUrl = `data:text/plain;base64,${base64}`;
 
     chrome.downloads.download({
-        url: 'data:text/plain,' + yaml,
-        filename: meetingTitle + ".txt",
+        url: dataUrl,
+        filename: fileName,
         saveAs: true
+    }, (downloadId) => {
+        if (chrome.runtime.lastError) {
+            console.error('Download failed:', chrome.runtime.lastError);
+        } else {
+            console.log('Download started with ID:', downloadId);
+        }
     });
 }
 
-
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-    console.log(message);
+    console.log('Service worker received message:', message);
+    
     switch (message.message) {
-        case 'download_captions': // message from Content script
+        case 'download_captions':
             console.log('download_captions triggered!', message);
-            saveTranscripts(message.meetingTitle, message.transcriptArray, message.meetingDate); // Pass meeting date
+            saveTranscripts(
+                message.meetingTitle, 
+                message.transcriptArray, 
+                message.meetingDate
+            );
             break;
-        case 'save_captions': // message from Popup
+            
+        case 'save_captions':
             console.log('save_captions triggered!');
-
             const [tab] = await chrome.tabs.query({
                 active: true,
                 lastFocusedWindow: true
             });
             console.log("Tabs query result:", tab);
 
-            console.log("sending message return_transcript");
-            chrome.tabs.sendMessage(tab.id, {
-                message: "return_transcript"
-            });
-
-            console.log("message start_capture sent!");
-
+            if (tab) {
+                chrome.tabs.sendMessage(tab.id, {
+                    message: "return_transcript"
+                });
+            }
             break;
+            
         default:
             break;
     }
