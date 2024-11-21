@@ -22,7 +22,7 @@ function checkCaptions() {
     const transcripts = closedCaptionsContainer.querySelectorAll('.ui-chat__item');
 
     const size = transcripts.length;
-    console.log(size);
+    // console.log(size); // Uncomment for debugging
 
     transcripts.forEach(transcript => {
         const ID = transcript.querySelector('.fui-Flex > .ui-chat__message').id;
@@ -56,7 +56,7 @@ function checkCaptions() {
                     };
                 }
             } else {
-                console.log({ Name, Text, Time, ID });
+                // console.log({ Name, Text, Time, ID }); // Uncomment for debugging
                 transcriptArray.push({ Name, Text, Time, ID });
             }
         }
@@ -331,6 +331,25 @@ document.addEventListener('mousemove', function(event) {
         }
     }
 });
+
+// Save captions when tab visibility changes
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+        console.log('Tab is hidden, saving captions');
+        storeMeetingData();
+    } else if (document.visibilityState === 'visible') {
+        console.log('Tab is visible');
+        // Optionally, attempt to restart transcription or perform actions when the tab becomes visible again
+    }
+});
+
+// Periodically save captions during the meeting
+setInterval(function() {
+    if (capturing) {
+        console.log('Periodic save of captions');
+        storeMeetingData();
+    }
+}, 60000); // Every 60 seconds
 
 // Initialize dynamic elements observer
 window.onload = () => {
