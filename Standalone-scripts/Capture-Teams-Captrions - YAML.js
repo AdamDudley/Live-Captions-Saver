@@ -70,8 +70,8 @@ function downloadYAML() {
 
     // Convert to your simple YAML format
     let yamlTranscripts = '';
-    transcripts.forEach(transcript => {
-        yamlTranscripts += `Name: ${transcript.Name}\nText: ${transcript.Text}\nTime: ${transcript.Time}\n----\n`;
+        transcripts.forEach(transcript => {
+            yamlTranscripts += `[${transcript.Time}] ${transcript.Name}: ${transcript.Text}\n`;
     });
 
     // Use the page's title as part of the file name, replacing "__Microsoft_Teams" with nothing
