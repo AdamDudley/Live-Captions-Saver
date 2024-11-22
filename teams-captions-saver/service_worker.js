@@ -7,11 +7,63 @@
 let isTranscribing = false;
 let transcriptArray = [];
 
+// full name
+// function jsonToYaml(json) {
+//     return json.map(entry => {
+//         return `[${entry.Time}] ${entry.Name}: ${entry.Text}`;
+//     }).join('\n');
+// }
+
+// first name only
 function jsonToYaml(json) {
     return json.map(entry => {
-        return `[${entry.Time}] ${entry.Name}: ${entry.Text}`;
+        let name = entry.Name;
+
+        if (name.includes('-')) {
+            // If the name contains a hyphen, output the whole name
+            name = name.trim();
+        } else {
+            // Remove any text within parentheses (e.g., '(External)')
+            name = name.replace(/\(.*?\)/g, '').trim();
+            // Split the name by whitespace and take the first part as the first name
+            name = name.split(/\s+/)[0];
+        }
+
+        return `[${entry.Time}] ${name}: ${entry.Text}`;
     }).join('\n');
 }
+
+// First name and initial of last name
+// function jsonToYaml(json) {
+//     return json.map(entry => {
+//         let name = entry.Name;
+
+//         if (name.includes('-')) {
+//             // If the name contains a hyphen, output the whole name
+//             name = name.trim();
+//         } else {
+//             // Remove any text within parentheses (e.g., '(External)')
+//             name = name.replace(/\(.*?\)/g, '').trim();
+
+//             // Split the name by whitespace
+//             const nameParts = name.split(/\s+/);
+
+//             if (nameParts.length > 1) {
+//                 // If there's more than one part, get the first name and initial of the last name
+//                 const firstName = nameParts[0];
+//                 const lastNameInitial = nameParts[1].charAt(0);
+//                 name = `${firstName} ${lastNameInitial}`;
+//             } else {
+//                 // If only one part, use the name as is
+//                 name = nameParts[0];
+//             }
+//         }
+
+//         return `[${entry.Time}] ${name}: ${entry.Text}`;
+//     }).join('\n');
+// }
+
+
 
 function saveTranscripts(meetingTitle, transcriptArray, meetingDate) {
     console.log('Starting saveTranscripts...');
