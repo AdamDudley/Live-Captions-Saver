@@ -9,35 +9,58 @@ let transcriptArray = [];
 
 function jsonToYaml(json) {
     return json.map(entry => {
-        return `Name: ${entry.Name}\nText: ${entry.Text}\nTime: ${entry.Time}\n----`;
+        return `[${entry.Time}] ${entry.Name}: ${entry.Text}`;
     }).join('\n');
 }
 
 function saveTranscripts(meetingTitle, transcriptArray, meetingDate) {
+    console.log('Starting saveTranscripts...');
+    
     // Sanitize the filename by removing invalid characters
     const sanitizedTitle = (meetingTitle || 'Meeting').replace(/[^a-z0-9]/gi, '_');
+    console.log('Sanitized meeting title:', sanitizedTitle);
+
     const sanitizedDate = (meetingDate || new Date().toLocaleDateString()).replace(/\//g, '-');
+    console.log('Sanitized meeting date:', sanitizedDate);
+
     const fileName = `${sanitizedTitle}_${sanitizedDate}.txt`;
+    console.log('Generated file name:', fileName);
 
     const yaml = `Meeting Date: ${meetingDate}\n\n` + jsonToYaml(transcriptArray);
-    
-    // Convert the content to a base64 string
-    const bytes = new TextEncoder().encode(yaml);
-    const base64 = btoa(String.fromCharCode(...bytes));
-    const dataUrl = `data:text/plain;base64,${base64}`;
+    console.log('YAML content prepared.');
 
-    chrome.downloads.download({
-        url: dataUrl,
-        filename: fileName,
-        saveAs: true
-    }, (downloadId) => {
-        if (chrome.runtime.lastError) {
-            console.error('Download failed:', chrome.runtime.lastError);
-        } else {
-            console.log('Download started with ID:', downloadId);
-        }
-    });
+    // Create a Blob from the YAML content
+    const blob = new Blob([yaml], { type: 'text/plain' });
+    console.log('Blob created. Size:', blob.size);
+
+    // Use a FileReader to read the Blob as a data URL
+    const reader = new FileReader();
+    reader.onload = function (event) {
+        const dataUrl = event.target.result; // Base64-encoded data URL
+        console.log('Data URL generated.');
+
+        chrome.downloads.download({
+            url: dataUrl,
+            filename: fileName,
+            saveAs: true
+        }, (downloadId) => {
+            if (chrome.runtime.lastError) {
+                console.error('Download failed:', chrome.runtime.lastError);
+            } else {
+                console.log('Download started with ID:', downloadId);
+            }
+        });
+        console.log('saveTranscripts complete.');
+    };
+
+    reader.onerror = function (event) {
+        console.error('Failed to read Blob:', event.target.error);
+    };
+
+    reader.readAsDataURL(blob); // Read the Blob as a data URL
 }
+
+
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     console.log('Service worker received message:', message);
