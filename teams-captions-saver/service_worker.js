@@ -25,8 +25,24 @@ function jsonToYaml(json) {
         } else {
             // Remove any text within parentheses (e.g., '(External)')
             name = name.replace(/\(.*?\)/g, '').trim();
-            // Split the name by whitespace and take the first part as the first name
-            name = name.split(/\s+/)[0];
+
+            // Check if the name is "Adam Dudley"
+            if (name.toLowerCase() === "adam dudley") {
+                name = "Adam Dudley";
+            } else {
+                // Split the name by whitespace
+                const nameParts = name.split(/\s+/);
+                
+                if (nameParts.length > 1) {
+                    // If there's more than one part, get the first name and initial of the last name
+                    const firstName = nameParts[0];
+                    const lastNameInitial = nameParts[1].charAt(0);
+                    name = `${firstName} ${lastNameInitial}.`;
+                } else {
+                    // If only one part, use the name as is
+                    name = nameParts[0];
+                }
+            }
         }
 
         return `[${entry.Time}] ${name}: ${entry.Text}`;
