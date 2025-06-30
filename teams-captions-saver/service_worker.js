@@ -7,6 +7,8 @@
 let isTranscribing = false;
 let transcriptArray = [];
 
+console.log('🔧 Service worker loaded/reloaded at:', new Date().toISOString());
+
 // full name
 // function jsonToYaml(json) {
 //     return json.map(entry => {
@@ -82,30 +84,46 @@ function jsonToYaml(json) {
 
 
 function saveTranscripts(meetingTitle, transcriptArray, meetingDate) {
-    console.log('Starting saveTranscripts...');
+    console.log('🚀 Starting saveTranscripts...');
+    console.log('📝 Meeting title received:', meetingTitle);
+    console.log('📊 Transcript array received:', transcriptArray);
+    console.log('📊 Transcript array length:', transcriptArray ? transcriptArray.length : 'undefined/null');
+    console.log('📅 Meeting date received:', meetingDate);
+    
+    // Check if transcriptArray is empty or invalid
+    if (!transcriptArray || transcriptArray.length === 0) {
+        console.error('❌ ERROR: Transcript array is empty or null!');
+        console.log('📊 Transcript array details:', {
+            isArray: Array.isArray(transcriptArray),
+            length: transcriptArray ? transcriptArray.length : 'N/A',
+            content: transcriptArray
+        });
+        return;
+    }
     
     // Sanitize the filename by removing invalid characters
     const sanitizedTitle = (meetingTitle || 'Meeting').replace(/[^a-z0-9]/gi, '_');
-    console.log('Sanitized meeting title:', sanitizedTitle);
+    console.log('🧹 Sanitized meeting title:', sanitizedTitle);
 
     const sanitizedDate = (meetingDate || new Date().toLocaleDateString()).replace(/\//g, '-');
-    console.log('Sanitized meeting date:', sanitizedDate);
+    console.log('🧹 Sanitized meeting date:', sanitizedDate);
 
     const fileName = `${sanitizedTitle}_${sanitizedDate}.txt`;
-    console.log('Generated file name:', fileName);
+    console.log('📁 Generated file name:', fileName);
 
     const yaml = `Meeting Date: ${meetingDate}\n\n` + jsonToYaml(transcriptArray);
-    console.log('YAML content prepared.');
+    console.log('📄 YAML content prepared. Length:', yaml.length);
+    console.log('📄 First 200 characters of YAML:', yaml.substring(0, 200));
 
     // Create a Blob from the YAML content
     const blob = new Blob([yaml], { type: 'text/plain' });
-    console.log('Blob created. Size:', blob.size);
+    console.log('💾 Blob created. Size:', blob.size);
 
     // Use a FileReader to read the Blob as a data URL
     const reader = new FileReader();
     reader.onload = function (event) {
         const dataUrl = event.target.result; // Base64-encoded data URL
-        console.log('Data URL generated.');
+        console.log('🔗 Data URL generated. Length:', dataUrl.length);
 
         chrome.downloads.download({
             url: dataUrl,
@@ -113,16 +131,16 @@ function saveTranscripts(meetingTitle, transcriptArray, meetingDate) {
             saveAs: true
         }, (downloadId) => {
             if (chrome.runtime.lastError) {
-                console.error('Download failed:', chrome.runtime.lastError);
+                console.error('❌ Download failed:', chrome.runtime.lastError);
             } else {
-                console.log('Download started with ID:', downloadId);
+                console.log('✅ Download started with ID:', downloadId);
             }
         });
-        console.log('saveTranscripts complete.');
+        console.log('🏁 saveTranscripts complete.');
     };
 
     reader.onerror = function (event) {
-        console.error('Failed to read Blob:', event.target.error);
+        console.error('❌ Failed to read Blob:', event.target.error);
     };
 
     reader.readAsDataURL(blob); // Read the Blob as a data URL
@@ -131,11 +149,18 @@ function saveTranscripts(meetingTitle, transcriptArray, meetingDate) {
 
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-    console.log('Service worker received message:', message);
+    console.log('📨 Service worker received message:', message);
+    console.log('📨 Message type:', message.message);
+    console.log('📨 Sender info:', sender);
     
     switch (message.message) {
         case 'download_captions':
-            console.log('download_captions triggered!', message);
+            console.log('⬇️ download_captions triggered!');
+            console.log('📊 Message data:', {
+                meetingTitle: message.meetingTitle,
+                transcriptArrayLength: message.transcriptArray ? message.transcriptArray.length : 'undefined/null',
+                meetingDate: message.meetingDate
+            });
             saveTranscripts(
                 message.meetingTitle, 
                 message.transcriptArray, 
@@ -144,21 +169,42 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             break;
             
         case 'save_captions':
-            console.log('save_captions triggered!');
-            const [tab] = await chrome.tabs.query({
-                active: true,
-                lastFocusedWindow: true
-            });
-            console.log("Tabs query result:", tab);
-
-            if (tab) {
-                chrome.tabs.sendMessage(tab.id, {
-                    message: "return_transcript"
+            console.log('💾 save_captions triggered!');
+            console.log('🔍 Querying for active tab...');
+            
+            try {
+                const [tab] = await chrome.tabs.query({
+                    active: true,
+                    lastFocusedWindow: true
                 });
+                console.log("📋 Tabs query result:", tab);
+                console.log("📋 Tab ID:", tab ? tab.id : 'No tab found');
+                console.log("📋 Tab URL:", tab ? tab.url : 'No tab found');
+
+                if (tab) {
+                    console.log('📤 Sending return_transcript message to content script...');
+                    chrome.tabs.sendMessage(tab.id, {
+                        message: "return_transcript"
+                    }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            console.error('❌ Error sending message to content script:', chrome.runtime.lastError);
+                        } else {
+                            console.log('✅ Message sent to content script successfully');
+                            console.log('📥 Response from content script:', response);
+                        }
+                    });
+                } else {
+                    console.error('❌ No active tab found!');
+                }
+            } catch (error) {
+                console.error('❌ Error in save_captions case:', error);
             }
             break;
             
         default:
+            console.log('⚠️ Unknown message type:', message.message);
             break;
     }
+    
+    console.log('📨 Message processing complete for:', message.message);
 });
