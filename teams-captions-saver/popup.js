@@ -4,13 +4,39 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const saveButton = document.getElementById('saveButton');
     const meetingList = document.getElementById('savedMeetings');
+    const clearHistoryButton = document.getElementById('clearHistoryButton');
 
-    if (!saveButton || !meetingList) {
+    if (!saveButton || !meetingList || !clearHistoryButton) {
         console.error('❌ Required elements not found in popup.html');
         return;
     }
 
     console.log('✅ Popup elements found successfully');
+
+    // Display version info
+    const versionInfo = document.getElementById('version-info');
+    const manifest = chrome.runtime.getManifest();
+    versionInfo.textContent = `Extension v${manifest.version}`;
+
+    // Get Service Worker version
+    chrome.runtime.sendMessage({ message: 'get_version' }, function(response) {
+        if (chrome.runtime.lastError) {
+            console.error('Error getting service worker version:', chrome.runtime.lastError);
+            versionInfo.textContent += ' | SW vN/A';
+        } else if (response && response.version) {
+            versionInfo.textContent += ` | SW v${response.version}`;
+        }
+    });
+
+    // Clear History Button
+    clearHistoryButton.addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear all saved meeting history? This cannot be undone.')) {
+            chrome.storage.local.set({ savedMeetings: [] }, function() {
+                console.log('✅ Meeting history cleared.');
+                displaySavedMeetings(); // Refresh the list
+            });
+        }
+    });
 
     // Save Current Captions Button - Direct download without storage
     saveButton.addEventListener('click', function () {
@@ -158,6 +184,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log('📥 Downloading saved meeting:', meetingId);
                     
                     if (meeting) {
+                        // Check if there are any transcripts to save
+                        if (!meeting.transcripts || meeting.transcripts.length === 0) {
+                            alert('This meeting has no saved captions to download.');
+                            console.warn('⚠️ Attempted to download a meeting with no transcripts.');
+                            return;
+                        }
+
                         console.log('🚀 Sending download message for saved meeting to service worker...');
                         
                         const messageToSend = {

@@ -3,6 +3,8 @@
 // Service worker script will be forcefully terminated after about 30 seconds of inactivity, and restarted when it's next needed.
 // https://stackoverflow.com/questions/66618136/persistent-service-worker-in-chrome-extension/66618269#66618269
 
+const SW_VERSION = "1.0";
+
 // This code is not used. But without it, the extension does not work
 let isTranscribing = false;
 let transcriptArray = [];
@@ -20,10 +22,12 @@ console.log('🔧 Service worker loaded/reloaded at:', new Date().toISOString())
 function jsonToYaml(json) {
     return json.map(entry => {
         let name = entry.Name;
+        console.log(`Processing name: "${name}"`);
 
         if (name.includes('-')) {
             // If the name contains a hyphen, output the whole name
             name = name.trim();
+            console.log(`  - Hyphen detected, using full name: "${name}"`);
         } else {
             // Remove any text within parentheses (e.g., '(External)')
             name = name.replace(/\(.*?\)/g, '').trim();
@@ -47,6 +51,7 @@ function jsonToYaml(json) {
             }
         }
 
+        console.log(`  - Final name: "${name}"`);
         return `[${entry.Time}] ${name}: ${entry.Text}`;
     }).join('\n');
 }
@@ -154,9 +159,14 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     console.log('📨 Sender info:', sender);
     
     switch (message.message) {
+        case 'get_version':
+            console.log('✅ get_version triggered!');
+            sendResponse({ version: SW_VERSION });
+            break;
+
         case 'download_captions':
             console.log('⬇️ download_captions triggered!');
-            console.log('📊 Message data:', {
+            console.log('🔍 Message data:', {
                 meetingTitle: message.meetingTitle,
                 transcriptArrayLength: message.transcriptArray ? message.transcriptArray.length : 'undefined/null',
                 meetingDate: message.meetingDate
@@ -207,4 +217,5 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
     
     console.log('📨 Message processing complete for:', message.message);
+    return true;
 });

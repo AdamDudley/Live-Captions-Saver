@@ -134,14 +134,31 @@
         .delete-btn:hover {
             background-color: #c82333;
         }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
+        button.danger {
+            background-color: #dc3545;
+        }
+
+        button.danger:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 
 <body>
     <h2 id="popup-header">Teams Captions Saver</h2>
-    <div class="version-info">Debug Version 2.1 - 09 Jan 2025</div>
+    <div id="version-info" class="version-info"></div>
     <span>Turn on live captions in Teams to start capturing</span>
-    <button id="saveButton">Save Current Captions</button>
+    <div class="button-container">
+        <button id="saveButton">Save Current Captions</button>
+        <button id="clearHistoryButton" class="danger">Clear History</button>
+    </div>
     <div id="savedMeetings" class="meeting-list">
         <!-- Meeting items will be inserted here dynamically -->
     </div>
